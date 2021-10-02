@@ -12,7 +12,10 @@
     "dev:frontend": "concurrently \"yarn run mock\" \"cd react-app && yarn run start\"",
     "serve": "pm2 start backend/dist/app.js --name fourier-drawer-app",
     "stop": "pm2 stop fourier-drawer-app",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "docker-build": "docker build -t joeyjackson/fourier-series-drawer .",
+    "docker-build-nc": "docker build --no-cache -t joeyjackson/fourier-series-drawer .",
+    "docker-run": "docker run --rm -d -p 3002:3000 joeyjackson/fourier-series-drawer"
   },
   "repository": {
     "type": "git",
@@ -26,10 +29,10 @@
   },
   "homepage": "https://github.com/joeyjackson/fourier-series-drawer#readme",
   "dependencies": {
+    "express": "^4.17.1",
     "cors": "^2.8.5",
     "cross-env": "^7.0.3",
     "dotenv": "^8.2.0",
-    "express": "^4.17.1",
     "pm2": "^4.5.5"
   },
   "devDependencies": {
