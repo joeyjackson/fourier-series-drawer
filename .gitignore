@@ -13,6 +13,7 @@
 /react-app/build
 
 # misc
+assets
 .DS_Store
 .env
 .env.local

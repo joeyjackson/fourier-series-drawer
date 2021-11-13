@@ -118,7 +118,7 @@ export default class Epicycle {
     boldPoint: boolean = false,
   ): Point {
     const center = offset
-    const point = epicycle.atOffset(time, offset)
+    const point = epicycle.atOffset(time, center)
     if (includeRing) {
       p5.noFill();
       p5.stroke(255, 100);

@@ -1,13 +1,13 @@
 import { ComplexNumber, PI } from "./Epicycle";
 
 // Discrete Fourier Tranform
-// Return N + 1 bins for the complex scalars for the fourier
-// series for rates [0, ..., N]
+// Return N bins for the complex scalars for the fourier
+// series for rates [0, ..., N-1]
 export function DFT(signal: ComplexNumber[]): ComplexNumber[] {
   const dft: ComplexNumber[] = [];
   const N = signal.length
 
-  for (let k = 0; k <= N; k++) {
+  for (let k = 0; k < N; k++) {
     let Ck: ComplexNumber = new ComplexNumber(0, 0);
 
     // FT (Fourier Transform)
