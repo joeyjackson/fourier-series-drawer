@@ -3,6 +3,7 @@ import express from "express";
 import path from "path";
 import dotenv from "dotenv";
 import cors from "cors";
+import { applyRoutes } from "./routes/routes";
 
 dotenv.config()
 
@@ -19,11 +20,16 @@ if (NODE_ENV === "development") {
 } else {
   console.log("CORS disabled");
 }
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 app.use(express.static(INDEX_HTML_DIR));
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(INDEX_HTML_DIR, "index.html"));
 })
+
+// Configure api routes
+applyRoutes(app);
 
 const server = http.createServer(app);
 

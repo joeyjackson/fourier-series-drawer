@@ -35,7 +35,7 @@ const draw2DSignalFunc = (
     p5.stroke(255);
     p5.noFill();
 
-    const numIterations = Math.round(p5.deltaTime / durationMs * N);
+    const numIterations = Math.round(p5.deltaTime / durationMs * N) % N;
     for (let i = 0; i < numIterations; i++) {
       const show = (i === numIterations - 1);
       path.unshift(epicycles.Draw(p5, time, epicyclesCenter, show, show, show));
