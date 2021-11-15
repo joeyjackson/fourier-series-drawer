@@ -23,7 +23,7 @@ export const signalRequestSchema: Schema = {
     optional: true,
     custom: {
       options: (transform, { }) => {
-        if (transform.window) {
+        if (transform?.window) {
           const existsAndIsInt = (value: any, name: string) => {
             if (value === undefined) {
               throw new Error(`Must specify ${name} in transform.window`);
@@ -32,11 +32,11 @@ export const signalRequestSchema: Schema = {
               throw new Error(`transform.window.${name} must be an int`);
             }
           }
-          existsAndIsInt(transform.window.minX, "minX");
-          existsAndIsInt(transform.window.minY, "minY");
-          existsAndIsInt(transform.window.width, "width");
-          existsAndIsInt(transform.window.height, "height");
-          const centerInWindow = transform.window.centerInWindow;
+          existsAndIsInt(transform?.window?.minX, "minX");
+          existsAndIsInt(transform?.window?.minY, "minY");
+          existsAndIsInt(transform?.window?.width, "width");
+          existsAndIsInt(transform?.window?.height, "height");
+          const centerInWindow = transform?.window?.centerInWindow;
           if (centerInWindow && typeof centerInWindow !== "boolean") {
             throw new Error("transform.window.centerInWindow must be a boolean")
           }
@@ -60,7 +60,7 @@ export const signalController: RequestHandler = (req, res) => {
   }
   let path = signals.get(pathName) || [];
   
-  if (req.body.transform.window) {
+  if (req.body.transform?.window) {
     path = tranformPathToWindow(
       path, 
       req.body.transform.window.minX,
