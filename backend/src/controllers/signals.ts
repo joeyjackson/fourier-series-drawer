@@ -1,6 +1,7 @@
 import { RequestHandler } from "express";
 import { validationResult, Schema } from 'express-validator';
 import signals from "../paths";
+import { DFT, Point } from "../math";
 
 const signalNames = Array.from(signals.keys());
 
@@ -10,6 +11,12 @@ export const signalRequestSchema: Schema = {
     isIn: {
       options: [["random", ...signalNames]],
       errorMessage: "Invalid object name",
+    },
+  },
+  includeDFT: {
+    optional: true,
+    isBoolean: {
+      errorMessage: "includeDFT must be a boolean",
     },
   },
   transform: {
@@ -37,7 +44,7 @@ export const signalRequestSchema: Schema = {
         return true;
       },
     },
-  }
+  },
 }
 
 export const signalController: RequestHandler = (req, res) => {
@@ -53,7 +60,7 @@ export const signalController: RequestHandler = (req, res) => {
   }
   let path = signals.get(pathName) || [];
   
-  if (req.body.transform) {
+  if (req.body.transform.window) {
     path = tranformPathToWindow(
       path, 
       req.body.transform.window.minX,
@@ -64,9 +71,14 @@ export const signalController: RequestHandler = (req, res) => {
     );
   }
 
+  const bins = req.body.includeDFT ? DFT(path.map(
+    ({ x, y }) => new Point(x, y).asComplexNumber()
+  )) : undefined;
+
   const data = {
     name: pathName,
     path: path,
+    bins: bins,
   }
   res.json(data);
 }
