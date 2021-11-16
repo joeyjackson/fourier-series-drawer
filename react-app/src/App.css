@@ -1,6 +1,7 @@
 .App {
   text-align: center;
-  margin: 1em;
+  min-width: 100vh;
+  margin: 10px;
 }
 /* 
 .App-header {

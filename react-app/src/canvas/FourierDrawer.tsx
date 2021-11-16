@@ -7,8 +7,8 @@ import Epicycle, { Point, ComplexNumber } from '../fourier/Epicycle';
 import EpicycleChain from '../fourier/EpicycleChain';
 
 interface Props {
-  initWidth?: number;
-  initHeight?: number;
+  maxWidth?: number;
+  maxHeight?: number;
 }
 
 const draw2DSignalFunc = (
@@ -75,32 +75,64 @@ const fetchDft = async (
   }
 }
 
-const FourierCanvas: FunctionComponent<Props> = ({ initWidth = 600, initHeight = 600 }) => {
-  const [height, ] = useState<number>(initHeight);
-  const [width, ] = useState<number>(initWidth);
+let resizeDebounceTimer: any;
+
+const resizeDebounce = (callback: () => void) => {
+  window.clearTimeout(resizeDebounceTimer);
+  resizeDebounceTimer = window.setTimeout(callback, 1000)
+}
+
+const FourierCanvas: FunctionComponent<Props> = ({ maxWidth = 600, maxHeight = 600 }) => {
+  const [width, setWidth] = useState<number>(maxWidth);
+  const [height, setHeight] = useState<number>(maxHeight);
   const _p5 = useRef<P5 | null>(null);
   const [signal, setSignal] = useState<Point[]>([]);
   const [bins, setBins] = useState<ComplexNumber[]>([]);
   const [labelMsg, setLabelMsg] = useState<string>("");
 
+  const handleResize = useCallback(() => {
+    resizeDebounce(() => {
+      const _width = window.visualViewport.width - 20;
+      const _height = window.visualViewport.height;
+      const newWidth = Math.floor(_width > maxWidth ? maxWidth : _width);
+      const newHeight = Math.floor(_height > maxHeight ? maxHeight : _height);
+      setWidth(newWidth);
+      setHeight(newHeight);
+    });
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("resize", handleResize);
+    handleResize();
+    return () => window.removeEventListener("resize", handleResize);
+  }, [maxWidth, maxHeight]);
+
+  // Static options
   const defaultPathName = "random";
   const defaultDurationMs = 10000;
   const defaultNumEpicycles = 64;
-  const epicycleOrigin = useMemo(() => new Point(300, 300), []);
-  const windowX = -200;
-  const windowY = -200;
-  const windowWidth = 400;
-  const windowHeight = 400;
   const centerInWindow = true;
   const showEpicycles = true;
   const showBoundingBox = false;
   const showTargetPath = false;
 
+  // Window sizing
+  const paddingX = useMemo(() => Math.floor(width / 3), [width]);
+  const paddingY = useMemo(() => Math.floor(height / 3), [height]);
+  const originX = useMemo(() => Math.floor(width / 2), [width]);
+  const originY = useMemo(() => Math.floor(height / 2), [height]);
+  const epicycleOrigin = useMemo(() => new Point(originX, originY), [originX, originY]);
+  const windowX = useMemo(() => paddingX - originX, [paddingX, originX]);
+  const windowY = useMemo(() => paddingY - originY, [paddingY, originY]);
+  const windowWidth = useMemo(() => width - 2*paddingX, [width, paddingX]);
+  const windowHeight = useMemo(() => height - 2*paddingY, [height, paddingY]);
+
+  // URL Params
   const queryParams = new URLSearchParams(window.location.search);
   
   const qObject = queryParams.get('object');
   const pathName: string = qObject || defaultPathName;
-
+  
   const qDuration = queryParams.get('duration_ms');
   if (qDuration) {
     if (!!!parseInt(qDuration)) {
@@ -117,13 +149,18 @@ const FourierCanvas: FunctionComponent<Props> = ({ initWidth = 600, initHeight =
   }
   const numEpicycles = (qEpicycles && parseInt(qEpicycles)) || defaultNumEpicycles;
 
+  const cachedPathName = useRef<string>(pathName);
+
+  // Resize P5
   useEffect(() => {
-    if (_p5.current !== null) _p5.current.resizeCanvas(width, height);
+    if (_p5.current !== null) {
+      _p5.current.resizeCanvas(width, height);
+    }
   }, [width, height]);
 
-  const getPath = useCallback(() => {
+  const fetchPath = useCallback((pathName) => {
     fetchDft(
-      pathName, 
+      pathName,
       {
         minX: windowX,
         minY: windowY,
@@ -135,6 +172,7 @@ const FourierCanvas: FunctionComponent<Props> = ({ initWidth = 600, initHeight =
     .then(res => {
       const { name, path, bins } = res;
       setLabelMsg(name);
+      cachedPathName.current = name;
       setSignal(path.map(({ x, y }: { x: number, y: number }) => new Point(x, y)));
       setBins(bins.map(({ re, im }: { re: number, im: number }) => new ComplexNumber(re, im)));
     })
@@ -150,11 +188,11 @@ const FourierCanvas: FunctionComponent<Props> = ({ initWidth = 600, initHeight =
       setBins([]);
       setSignal([]);
     })
-  }, [pathName, windowX, windowY, windowWidth, windowHeight, centerInWindow])
+  }, [windowX, windowY, windowWidth, windowHeight, centerInWindow]);
 
   useEffect(() => {
-    getPath();
-  }, [getPath])
+    fetchPath(cachedPathName.current);
+  }, [fetchPath])
 
   const resetDrawFunction = useCallback((p5: P5, signal: Point[], bins: ComplexNumber[]) => {
     const draw2DSignal = draw2DSignalFunc(p5, bins, epicycleOrigin, numEpicycles, durationMs);
@@ -187,7 +225,7 @@ const FourierCanvas: FunctionComponent<Props> = ({ initWidth = 600, initHeight =
         );
       }
     }
-  }, [durationMs, epicycleOrigin, numEpicycles, showBoundingBox, showEpicycles, showTargetPath, windowX, windowY]);
+  }, [durationMs, epicycleOrigin, numEpicycles, showBoundingBox, showEpicycles, showTargetPath, windowX, windowY, windowHeight, windowWidth]);
 
   useEffect(() => {
     if (_p5.current !== null) {
@@ -210,106 +248,16 @@ const FourierCanvas: FunctionComponent<Props> = ({ initWidth = 600, initHeight =
     
     p5.doubleClicked = () => {
       if (mouseInCanvas()) {
-        getPath();
+        setLabelMsg("Loading...");
+        fetchPath(pathName);
       }
     }
-  }, [getPath, width, height]);
+  }, [width, height, fetchPath, handleResize]);
 
-  return <>{labelMsg}<P5Canvas sketch={sketch}/></>;
+  return <>
+    <h6>{labelMsg}</h6>
+    <P5Canvas sketch={sketch}/>
+  </>;
 }
 
 export default FourierCanvas;
-
-
-// const draw1DSignalFunc = (
-//   p5: P5, 
-//   signal: number[], 
-//   epicyclesCenter: Point,
-//   waveOffsetX: number, 
-//   waveMaxLen: number,
-//   maxEpicycles?: number,
-// ) => {
-//   const N = signal.length;
-//   const signalComplex = signal.map(pt => new ComplexNumber(0, pt));
-//   const dft = DFT(signalComplex);
-
-//   const epicycles = new EpicycleChain()
-//     .extend(dft.map(Epicycle.FromComplex).filter((e => !e.isZero())))
-//     .sort()
-//     .truncate(maxEpicycles ?? N);
-
-//   let time = 0;
-//   const wave: number[] = [];
-//   const dt = 1 / N;
-
-//   return () => {
-//     const endpoint = epicycles.Draw(p5, time, epicyclesCenter, true, true, true);
-//     wave.unshift(endpoint.y);
-
-//     p5.stroke(0, 0, 255);
-//     p5.line(endpoint.x, endpoint.y, waveOffsetX, endpoint.y);
-
-//     p5.stroke(255);
-//     p5.noFill();
-//     p5.beginShape();
-//     wave.forEach((y, i) => p5.vertex(waveOffsetX + i, y));
-//     p5.endShape();
-
-//     time += dt;
-
-//     if (wave.length >= waveMaxLen) wave.pop();
-//   }
-// }
-
-// const draw2DSignalSeparateFunc = (
-//   p5: P5, 
-//   signal: Point[], 
-//   epicyclesCenterX: Point,
-//   epicyclesCenterY: Point,
-//   maxEpicyclesX?: number,
-//   maxEpicyclesY?: number,
-// ) => {
-//   const N = signal.length;
-//   const signalX = signal.map(pt => new ComplexNumber(pt.x, 0));
-//   const signalY = signal.map(pt => new ComplexNumber(0, pt.y));
-//   const dftX = DFT(signalX);
-//   const dftY = DFT(signalY);
-
-//   const epicyclesX = new EpicycleChain()
-//     .extend(dftX.map(Epicycle.FromComplex).filter((e => !e.isZero())))
-//     .sort()
-//     .truncate(maxEpicyclesX ?? N);
-//   const epicyclesY = new EpicycleChain()
-//     .extend(dftY.map(Epicycle.FromComplex).filter((e => !e.isZero())))
-//     .sort()
-//     .truncate(maxEpicyclesY ?? N);
-
-//   let time = 0;
-//   const path: Point[] = [];
-//   const dt = 1 / N;
-
-//   return () => {
-//     const endpointX = epicyclesX.Draw(p5, time, epicyclesCenterX, true, true, true);
-//     const endpointY = epicyclesY.Draw(p5, time, epicyclesCenterY, true, true, true);
-//     const latest = new Point(endpointX.x, endpointY.y);
-//     path.unshift(latest);
-
-//     p5.stroke(0, 0, 255);
-//     p5.line(endpointX.x, endpointX.y, latest.x, latest.y);
-//     p5.line(endpointY.x, endpointY.y, latest.x, latest.y);
-
-//     p5.stroke(255);
-//     p5.noFill();
-
-//     for (let i = 0; i < path.length - 1; i++) {
-//       const prev = path[i];
-//       const curr = path[i + 1];
-//       p5.stroke(255, 255 * ((path.length - i) / path.length))
-//       p5.line(prev.x, prev.y, curr.x, curr.y);
-//     }
-
-//     time += dt;
-
-//     if (path.length >= N) path.pop();
-//   }
-// }
