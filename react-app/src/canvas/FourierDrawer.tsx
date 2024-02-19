@@ -92,8 +92,8 @@ const FourierCanvas: FunctionComponent<Props> = ({ maxWidth = 600, maxHeight = 6
 
   const handleResize = useCallback(() => {
     resizeDebounce(() => {
-      const _width = window.visualViewport.width - 20;
-      const _height = window.visualViewport.height;
+      const _width = Math.max((window.visualViewport?.width || 0) - 20, 0);
+      const _height = (window.visualViewport?.height || 0);
       const newWidth = Math.floor(_width > maxWidth ? maxWidth : _width);
       const newHeight = Math.floor(_height > maxHeight ? maxHeight : _height);
       setWidth(newWidth);
@@ -158,7 +158,7 @@ const FourierCanvas: FunctionComponent<Props> = ({ maxWidth = 600, maxHeight = 6
     }
   }, [width, height]);
 
-  const fetchPath = useCallback((pathName) => {
+  const fetchPath = useCallback((pathName: string) => {
     fetchDft(
       pathName,
       {
