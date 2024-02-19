@@ -5,6 +5,7 @@ Web application that draws arbitrary shapes using a fourier series and epicycles
 ```
 npm install
 cd react-app && npm install
+cd ..
 ```
 
 ## Running the Application
