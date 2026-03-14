@@ -1,4 +1,4 @@
-FROM node:20-alpine AS build
+FROM node:24-alpine AS build
 RUN npm install -g typescript
 WORKDIR /build
 COPY react-app/package*.json /build/react-app/
@@ -8,7 +8,7 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-FROM node:20-alpine
+FROM node:24-alpine
 WORKDIR /app
 COPY package*.json /app/
 RUN npm install --only=prod
